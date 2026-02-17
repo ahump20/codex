@@ -1463,7 +1463,11 @@ async fn snapshot_request_shape_remote_pre_turn_compaction_strips_incoming_model
     let compact_mock = responses::mount_compact_json_once(
         harness.server(),
         serde_json::json!({
-            "output": [responses::user_message_item(&summary_with_prefix("REMOTE_SWITCH_SUMMARY"))]
+            "output": [
+                responses::user_message_item("BEFORE_SWITCH_USER"),
+                responses::user_message_item("AFTER_SWITCH_USER"),
+                responses::user_message_item(&summary_with_prefix("REMOTE_SWITCH_SUMMARY"))
+            ]
         }),
     )
     .await;
@@ -1527,6 +1531,14 @@ async fn snapshot_request_shape_remote_pre_turn_compaction_strips_incoming_model
     );
 
     let follow_up_body = requests[1].body_json().to_string();
+    assert!(
+        follow_up_body.contains("BEFORE_SWITCH_USER"),
+        "post-compaction follow-up should preserve older user messages when they fit"
+    );
+    assert!(
+        follow_up_body.contains("AFTER_SWITCH_USER"),
+        "post-compaction follow-up should preserve incoming user message from compact output"
+    );
     assert!(
         follow_up_body.contains("<model_switch>"),
         "post-compaction follow-up should include the model-switch update item"
